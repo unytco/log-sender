@@ -50,6 +50,7 @@ pub struct RuntimeConfigFile {
     config: RuntimeConfig,
     file: tokio::fs::File,
     path: std::path::PathBuf,
+    pub(crate) rt_drone_sec_key: SecKey,
 }
 
 impl std::ops::Deref for RuntimeConfigFile {
@@ -74,7 +75,7 @@ impl RuntimeConfigFile {
         unyt_pub_key: String,
         drone_id: u64,
     ) -> Result<Self> {
-        let (pk, sk) = generate_keypair().await?;
+        let (rt_drone_pub_key, rt_drone_sec_key) = generate_keypair().await?;
 
         let path = file.clone();
         let file = tokio::task::spawn_blocking(move || {
@@ -91,13 +92,18 @@ impl RuntimeConfigFile {
 
         let config = RuntimeConfig::with_init(
             endpoint,
-            pk.encode()?,
-            sk.encode()?,
+            rt_drone_pub_key.encode()?,
+            rt_drone_sec_key.encode()?,
             unyt_pub_key,
             drone_id,
         );
 
-        let mut this = Self { config, file, path };
+        let mut this = Self {
+            config,
+            file,
+            path,
+            rt_drone_sec_key,
+        };
 
         this.write().await?;
 
@@ -111,8 +117,10 @@ impl RuntimeConfigFile {
 
     /// Write the config to the file.
     pub async fn write(&mut self) -> Result<()> {
-        use tokio::io::AsyncWriteExt;
+        use tokio::io::{AsyncSeekExt, AsyncWriteExt};
         let data = serde_json::to_string_pretty(&self.config)?;
+        self.file.rewind().await?;
+        self.file.set_len(data.len() as u64).await?;
         self.file.write_all(data.as_bytes()).await?;
         self.file.flush().await?;
         Ok(())

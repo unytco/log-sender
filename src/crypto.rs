@@ -1,6 +1,7 @@
 //! Crypto utility types.
 
 use super::*;
+use base64::prelude::*;
 
 /// Public key.
 pub struct PubKey(rsa::RsaPublicKey);
@@ -58,4 +59,3 @@ pub async fn generate_keypair() -> Result<(PubKey, SecKey)> {
     })
     .await?
 }
-
