@@ -21,8 +21,11 @@ pub struct RuntimeConfig {
     /// Drone id.
     pub drone_id: u64,
 
+    /// Report interval seconds.
+    pub report_interval_seconds: u64,
+
     /// Last record timestamp sent.
-    pub last_record_timestamp: f64,
+    pub last_record_timestamp: String,
 }
 
 impl RuntimeConfig {
@@ -33,6 +36,7 @@ impl RuntimeConfig {
         drone_sec_key: String,
         unyt_pub_key: String,
         drone_id: u64,
+        report_interval_seconds: u64,
     ) -> Self {
         Self {
             endpoint,
@@ -40,7 +44,8 @@ impl RuntimeConfig {
             drone_sec_key,
             unyt_pub_key,
             drone_id,
-            last_record_timestamp: 0.0,
+            report_interval_seconds,
+            last_record_timestamp: "0".into(),
         }
     }
 }
@@ -80,8 +85,11 @@ impl RuntimeConfigFile {
         endpoint: String,
         unyt_pub_key: String,
         drone_id: u64,
+        report_interval_seconds: u64,
     ) -> Result<Self> {
-        let (rt_drone_pub_key, rt_drone_sec_key) = generate_keypair().await?;
+        let (rt_drone_pub_key, mut rt_drone_sec_key) =
+            generate_keypair().await?;
+        rt_drone_sec_key = rt_drone_sec_key.precompute().await?;
 
         let path = file.clone();
         let file = tokio::task::spawn_blocking(move || {
@@ -102,6 +110,7 @@ impl RuntimeConfigFile {
             rt_drone_sec_key.encode()?,
             unyt_pub_key,
             drone_id,
+            report_interval_seconds,
         );
 
         let mut this = Self {
@@ -114,6 +123,39 @@ impl RuntimeConfigFile {
         this.write().await?;
 
         Ok(this)
+    }
+
+    /// Load a runtime config from disk.
+    pub async fn with_load(file: std::path::PathBuf) -> Result<Self> {
+        use tokio::io::AsyncReadExt;
+
+        let path = file.clone();
+
+        let mut file = tokio::task::spawn_blocking(move || {
+            use fs2::FileExt;
+            let file = std::fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .open(file)?;
+            file.try_lock_exclusive()?;
+            std::io::Result::Ok(tokio::fs::File::from_std(file))
+        })
+        .await??;
+
+        let mut config = String::new();
+        file.read_to_string(&mut config).await?;
+        let config: RuntimeConfig = serde_json::from_str(&config)?;
+
+        let mut rt_drone_sec_key =
+            SecKey::decode(config.drone_sec_key.as_bytes())?;
+        rt_drone_sec_key = rt_drone_sec_key.precompute().await?;
+
+        Ok(Self {
+            config,
+            file,
+            path,
+            rt_drone_sec_key,
+        })
     }
 
     /// Get the path of the file on-disk.

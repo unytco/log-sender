@@ -23,6 +23,19 @@ impl PubKey {
 pub struct SecKey(rsa::RsaPrivateKey);
 
 impl SecKey {
+    /// Decode the private key.
+    pub fn decode(data: &[u8]) -> Result<Self> {
+        use rsa::pkcs8::DecodePrivateKey;
+        Ok(Self(
+            rsa::RsaPrivateKey::from_pkcs8_der(
+                &BASE64_STANDARD
+                    .decode(data)
+                    .map_err(std::io::Error::other)?,
+            )
+            .map_err(std::io::Error::other)?,
+        ))
+    }
+
     /// Encode the private key.
     pub fn encode(&self) -> Result<String> {
         use rsa::pkcs8::EncodePrivateKey;
@@ -32,6 +45,15 @@ impl SecKey {
                 .map_err(std::io::Error::other)?
                 .as_bytes(),
         ))
+    }
+
+    /// Precompute to speed up runtime.
+    pub async fn precompute(mut self) -> Result<Self> {
+        tokio::task::spawn_blocking(|| {
+            self.0.precompute().map_err(std::io::Error::other)?;
+            Ok(self)
+        })
+        .await?
     }
 
     /// Sign some data.
@@ -51,9 +73,8 @@ impl SecKey {
 /// Generate a keypair.
 pub async fn generate_keypair() -> Result<(PubKey, SecKey)> {
     tokio::task::spawn_blocking(|| {
-        let mut sk = rsa::RsaPrivateKey::new(&mut rand::thread_rng(), 2048)
+        let sk = rsa::RsaPrivateKey::new(&mut rand::thread_rng(), 2048)
             .map_err(std::io::Error::other)?;
-        sk.precompute().map_err(std::io::Error::other)?;
         let pk = rsa::RsaPublicKey::from(&sk);
         Ok((PubKey(pk), SecKey(sk)))
     })

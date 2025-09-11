@@ -9,6 +9,7 @@ async fn config_init() {
         "http://127.0.0.1:8787".into(),
         "bla".into(),
         42,
+        60,
     )
     .await
     .unwrap();
