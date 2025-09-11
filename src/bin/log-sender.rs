@@ -47,9 +47,24 @@ enum Cmd {
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() {
+    tracing::subscriber::set_global_default(
+        tracing_subscriber::FmtSubscriber::builder()
+            .with_env_filter(
+                tracing_subscriber::EnvFilter::builder()
+                    .with_default_directive(
+                        tracing_subscriber::filter::LevelFilter::INFO.into(),
+                    )
+                    .from_env_lossy(),
+            )
+            .compact()
+            .without_time()
+            .finish(),
+    )
+    .unwrap();
+
     let arg: Arg = clap::Parser::parse();
 
-    println!("Running Command: {:#?}", &arg.cmd);
+    tracing::info!(cmd = ?arg.cmd, "Running Command");
 
     match arg.cmd {
         Cmd::Init {

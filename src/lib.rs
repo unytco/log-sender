@@ -60,12 +60,12 @@ pub async fn run_service(
     client.health().await?;
 
     loop {
-        println!("Running reports..");
+        tracing::debug!("Running reports..");
         match read_reports(
             &report_directory,
             config.last_record_timestamp.clone(),
             |proofs| async {
-                println!("Reporting {} proofs..", proofs.len());
+                tracing::info!("Reporting {} proofs..", proofs.len());
                 client.metrics(&config, proofs).await
             },
         )
@@ -80,7 +80,7 @@ pub async fn run_service(
             }
         }
 
-        println!("done.");
+        tracing::debug!("done.");
 
         tokio::time::sleep(std::time::Duration::from_secs(
             config.report_interval_seconds,
