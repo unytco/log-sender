@@ -34,7 +34,9 @@ pub async fn initialize(
     config.write().await?;
 
     // TODO remove this test
-    client.metrics(&config, vec!["test1".into(), "test2".into()]).await?;
+    client
+        .metrics(&config, vec!["test1".into(), "test2".into()])
+        .await?;
 
     Ok(())
 }

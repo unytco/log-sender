@@ -3,7 +3,7 @@
 use super::*;
 
 /// Runtime configuration.
-#[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeConfig {
     /// Log collector endpoint.
@@ -51,6 +51,12 @@ pub struct RuntimeConfigFile {
     file: tokio::fs::File,
     path: std::path::PathBuf,
     pub(crate) rt_drone_sec_key: SecKey,
+}
+
+impl From<RuntimeConfigFile> for RuntimeConfig {
+    fn from(config: RuntimeConfigFile) -> Self {
+        config.config
+    }
 }
 
 impl std::ops::Deref for RuntimeConfigFile {

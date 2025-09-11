@@ -39,13 +39,11 @@ impl Client {
 
         if res.error_for_status_ref().is_err() {
             return Err(std::io::Error::other(
-                res.text().await.map_err(std::io::Error::other)?
+                res.text().await.map_err(std::io::Error::other)?,
             ));
         }
 
-        let res: R = res.json()
-            .await
-            .map_err(std::io::Error::other)?;
+        let res: R = res.json().await.map_err(std::io::Error::other)?;
 
         if res.status != "healthy" {
             return Err(std::io::Error::other(format!(
@@ -123,14 +121,11 @@ impl Client {
 
         if res.error_for_status_ref().is_err() {
             return Err(std::io::Error::other(
-                res.text().await.map_err(std::io::Error::other)?
+                res.text().await.map_err(std::io::Error::other)?,
             ));
         }
 
-        let res: Res = res
-            .json()
-            .await
-            .map_err(std::io::Error::other)?;
+        let res: Res = res.json().await.map_err(std::io::Error::other)?;
 
         if res.success {
             return Ok(res.registration.id);
@@ -184,14 +179,15 @@ impl Client {
             .expect("can get time")
             .as_millis() as u64;
 
-        let metrics: Vec<ReqMetric> = proofs.into_iter().map(|proof| {
-            ReqMetric {
+        let metrics: Vec<ReqMetric> = proofs
+            .into_iter()
+            .map(|proof| ReqMetric {
                 value: 0,
                 timestamp,
                 registered_unit_index: 0,
                 proof,
-            }
-        }).collect();
+            })
+            .collect();
 
         let sig = serde_json::to_string(&Sig {
             drone_pub_key: config.drone_pub_key.clone(),
@@ -220,7 +216,7 @@ impl Client {
 
         if res.error_for_status_ref().is_err() {
             return Err(std::io::Error::other(
-                res.text().await.map_err(std::io::Error::other)?
+                res.text().await.map_err(std::io::Error::other)?,
             ));
         }
 
@@ -229,10 +225,7 @@ impl Client {
             success: bool,
         }
 
-        let res: Res = res
-            .json()
-            .await
-            .map_err(std::io::Error::other)?;
+        let res: Res = res.json().await.map_err(std::io::Error::other)?;
 
         if res.success {
             return Ok(());
