@@ -24,12 +24,19 @@ pub struct RuntimeConfig {
     /// Report interval seconds.
     pub report_interval_seconds: u64,
 
+    /// List of paths from which to pull reports.
+    pub report_path_list: Vec<std::path::PathBuf>,
+
+    /// List of conductor config paths, for pulling db size reports.
+    pub conductor_config_path_list: Vec<std::path::PathBuf>,
+
     /// Last record timestamp sent.
     pub last_record_timestamp: String,
 }
 
 impl RuntimeConfig {
     /// Create a new runtime configuration instance.
+    #[allow(clippy::too_many_arguments)]
     pub fn with_init(
         endpoint: String,
         drone_pub_key: String,
@@ -37,6 +44,8 @@ impl RuntimeConfig {
         unyt_pub_key: String,
         drone_id: u64,
         report_interval_seconds: u64,
+        report_path_list: Vec<std::path::PathBuf>,
+        conductor_config_path_list: Vec<std::path::PathBuf>,
     ) -> Self {
         Self {
             endpoint,
@@ -45,6 +54,8 @@ impl RuntimeConfig {
             unyt_pub_key,
             drone_id,
             report_interval_seconds,
+            report_path_list,
+            conductor_config_path_list,
             last_record_timestamp: "0".into(),
         }
     }
@@ -86,6 +97,8 @@ impl RuntimeConfigFile {
         unyt_pub_key: String,
         drone_id: u64,
         report_interval_seconds: u64,
+        report_path_list: Vec<std::path::PathBuf>,
+        conductor_config_path_list: Vec<std::path::PathBuf>,
     ) -> Result<Self> {
         let (rt_drone_pub_key, mut rt_drone_sec_key) =
             generate_keypair().await?;
@@ -111,6 +124,8 @@ impl RuntimeConfigFile {
             unyt_pub_key,
             drone_id,
             report_interval_seconds,
+            report_path_list,
+            conductor_config_path_list,
         );
 
         let mut this = Self {
