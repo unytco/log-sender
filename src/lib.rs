@@ -48,8 +48,12 @@ pub async fn initialize(
 /// Run the service checking for report logs and reporting them.
 pub async fn run_service(
     config_file: std::path::PathBuf,
-    report_directory: std::path::PathBuf,
+    report_path_list: Vec<std::path::PathBuf>,
 ) -> Result<()> {
+    if report_path_list.is_empty() {
+        return Err(std::io::Error::other("no report paths specified"));
+    }
+
     let mut config = RuntimeConfigFile::with_load(config_file).await?;
 
     let url =
@@ -62,7 +66,7 @@ pub async fn run_service(
     loop {
         tracing::debug!("Running reports..");
         match read_reports(
-            &report_directory,
+            &report_path_list,
             config.last_record_timestamp.clone(),
             |proofs| async {
                 tracing::info!("Reporting {} proofs..", proofs.len());

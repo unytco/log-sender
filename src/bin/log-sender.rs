@@ -38,10 +38,13 @@ enum Cmd {
         #[arg(long, env = "LOG_SENDER_CONFIG_FILE")]
         config_file: std::path::PathBuf,
 
-        /// Specify a path to a directory that will contain log files
-        /// with entries to be published as log-collector metrics.
-        #[arg(long, env = "LOG_SENDER_REPORT_DIRECTORY")]
-        report_directory: std::path::PathBuf,
+        /// Specify one or more paths to directories that will contain log files
+        /// with entries to be published as log-collector metrics. The sender
+        /// will parse all files ending in a `.jsonl` extension. Specify
+        /// this argument multiple times on the command line, or if using
+        /// an environment variable, separate the paths with commas.
+        #[arg(long, env = "LOG_SENDER_REPORT_PATHS", value_delimiter = ',')]
+        report_path: Vec<std::path::PathBuf>,
     },
 }
 
@@ -82,8 +85,8 @@ async fn main() {
         .unwrap(),
         Cmd::Service {
             config_file,
-            report_directory,
-        } => log_sender::run_service(config_file, report_directory)
+            report_path,
+        } => log_sender::run_service(config_file, report_path)
             .await
             .unwrap(),
     }

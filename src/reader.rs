@@ -12,7 +12,7 @@ struct Parse {
 
 /// Read reports from disk. Returns the new time to ignore before.
 pub async fn read_reports<F, C>(
-    dir: &std::path::Path,
+    path_list: &[std::path::PathBuf],
     ignore_before: String,
     mut cb: C,
 ) -> Result<String>
@@ -28,43 +28,45 @@ where
 
     let mut proofs = Vec::new();
 
-    let mut dir = tokio::fs::read_dir(dir).await?;
-    while let Ok(Some(e)) = dir.next_entry().await {
-        let f = e.file_name().to_string_lossy().to_string();
-        if !f.starts_with("hc-report.") || !f.ends_with(".jsonl") {
-            continue;
-        }
-        let f = tokio::fs::File::open(e.path()).await?;
-        let f = tokio::io::BufReader::new(f);
-        let mut f = f.lines();
-
-        while let Some(line) = f.next_line().await? {
-            let p: Parse = match serde_json::from_str(&line) {
-                Ok(p) => p,
-                Err(_) => continue,
-            };
-
-            if p.k != "fetchedOps" {
+    for dir in path_list.iter() {
+        let mut dir = tokio::fs::read_dir(dir).await?;
+        while let Ok(Some(e)) = dir.next_entry().await {
+            let f = e.file_name().to_string_lossy().to_string();
+            if !f.ends_with(".jsonl") {
                 continue;
             }
+            let f = tokio::fs::File::open(e.path()).await?;
+            let f = tokio::io::BufReader::new(f);
+            let mut f = f.lines();
 
-            let t: u64 = match p.t.parse() {
-                Ok(t) => t,
-                Err(_) => continue,
-            };
+            while let Some(line) = f.next_line().await? {
+                let p: Parse = match serde_json::from_str(&line) {
+                    Ok(p) => p,
+                    Err(_) => continue,
+                };
 
-            if t <= ignore_before {
-                continue;
-            }
+                if p.k != "fetchedOps" {
+                    continue;
+                }
 
-            if t > max_ignore_before {
-                max_ignore_before = t;
-            }
+                let t: u64 = match p.t.parse() {
+                    Ok(t) => t,
+                    Err(_) => continue,
+                };
 
-            proofs.push(line);
+                if t <= ignore_before {
+                    continue;
+                }
 
-            if proofs.len() >= 100 {
-                cb(std::mem::take(&mut proofs)).await?;
+                if t > max_ignore_before {
+                    max_ignore_before = t;
+                }
+
+                proofs.push(line);
+
+                if proofs.len() >= 100 {
+                    cb(std::mem::take(&mut proofs)).await?;
+                }
             }
         }
     }

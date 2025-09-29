@@ -174,18 +174,21 @@ impl Client {
             unyt_pub_key: String,
         }
 
-        let timestamp = std::time::SystemTime::UNIX_EPOCH
+        let mut timestamp = std::time::SystemTime::UNIX_EPOCH
             .elapsed()
             .expect("can get time")
             .as_millis() as u64;
 
         let metrics: Vec<ReqMetric> = proofs
             .into_iter()
-            .map(|proof| ReqMetric {
-                value: 0,
-                timestamp,
-                registered_unit_index: 0,
-                proof,
+            .map(|proof| {
+                timestamp += 1;
+                ReqMetric {
+                    value: 0,
+                    timestamp,
+                    registered_unit_index: 0,
+                    proof,
+                }
             })
             .collect();
 
