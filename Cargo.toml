@@ -12,6 +12,7 @@ reqwest = { version = "0.12.23", features = ["json"] }
 rsa = { version = "0.9.8", features = ["sha2"] }
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = { version = "1.0.143", features = ["preserve_order"] }
+serde_yaml = "0.9.34"
 tokio = { version = "1.47.1", features = ["full"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
