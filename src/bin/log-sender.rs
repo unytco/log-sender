@@ -28,6 +28,25 @@ enum Cmd {
         /// Frequency at which to run reporting.
         #[arg(long, env = "LOG_SENDER_REPORT_INTERVAL_SECONDS")]
         report_interval_seconds: u64,
+
+        /// Specify one or more paths to directories that will contain log files
+        /// with entries to be published as log-collector metrics. The sender
+        /// will parse all files ending in a `.jsonl` extension. Specify
+        /// this argument multiple times on the command line, or if using
+        /// an environment variable, separate the paths with commas.
+        #[arg(long, env = "LOG_SENDER_REPORT_PATHS", value_delimiter = ',')]
+        report_path: Vec<std::path::PathBuf>,
+
+        /// Specify one or more conductor config paths. These will be used
+        /// to report on database sizes on-disk at the reporting interval.
+        /// Specify this argument multiple times on the command line, or if
+        /// using an environment variable, separate the paths with commas.
+        #[arg(
+            long,
+            env = "LOG_SENDER_CONDUCTOR_CONFIG_PATHS",
+            value_delimiter = ','
+        )]
+        conductor_config_path: Vec<std::path::PathBuf>,
     },
 
     /// Run the service, polling a log-file directory for metrics to
@@ -37,14 +56,6 @@ enum Cmd {
         /// e.g. `/var/run/log-sender-runtime.json`.
         #[arg(long, env = "LOG_SENDER_CONFIG_FILE")]
         config_file: std::path::PathBuf,
-
-        /// Specify one or more paths to directories that will contain log files
-        /// with entries to be published as log-collector metrics. The sender
-        /// will parse all files ending in a `.jsonl` extension. Specify
-        /// this argument multiple times on the command line, or if using
-        /// an environment variable, separate the paths with commas.
-        #[arg(long, env = "LOG_SENDER_REPORT_PATHS", value_delimiter = ',')]
-        report_path: Vec<std::path::PathBuf>,
     },
 }
 
@@ -75,19 +86,20 @@ async fn main() {
             endpoint,
             unyt_pub_key,
             report_interval_seconds,
+            report_path,
+            conductor_config_path,
         } => log_sender::initialize(
             config_file,
             endpoint,
             unyt_pub_key,
             report_interval_seconds,
+            report_path,
+            conductor_config_path,
         )
         .await
         .unwrap(),
-        Cmd::Service {
-            config_file,
-            report_path,
-        } => log_sender::run_service(config_file, report_path)
-            .await
-            .unwrap(),
+        Cmd::Service { config_file } => {
+            log_sender::run_service(config_file).await.unwrap()
+        }
     }
 }
