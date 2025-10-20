@@ -20,4 +20,3 @@ jobs:
       run: RUSTFLAGS="-D warnings" cargo build --locked --all-features --all-targets --verbose
     - name: Run tests
       run: RUSTFLAGS="-D warnings" cargo test --locked --all-features --all-targets --verbose
-	
