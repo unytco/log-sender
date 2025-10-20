@@ -49,8 +49,10 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Install musl target
+        run: rustup target add x86_64-unknown-linux-musl
       - name: Build release binary
-        run: cargo build --verbose --release --bin log-sender
+        run: cargo build --verbose --release --bin log-sender --target x86_64-unknown-linux-musl
       - name: Create Release and Upload Asset
         uses: softprops/action-gh-release@v1
         with:
