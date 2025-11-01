@@ -7,12 +7,13 @@ use base64::prelude::*;
 pub struct PubKey(rsa::RsaPublicKey);
 
 impl PubKey {
-    /// Encode the public key.
+    /// Encode the public key in SPKI format for compatibility with Web Crypto API.
     pub fn encode(&self) -> Result<String> {
         use rsa::pkcs8::EncodePublicKey;
+        // Use SPKI format which is required by Web Crypto API for RSA-PSS verification
         Ok(BASE64_STANDARD.encode(
             self.0
-                .to_public_key_der()
+                .to_public_key_pem(rsa::pkcs8::LineEnding::default())
                 .map_err(std::io::Error::other)?
                 .as_bytes(),
         ))
