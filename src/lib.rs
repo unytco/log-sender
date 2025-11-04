@@ -88,6 +88,9 @@ pub async fn run_service(config_file: std::path::PathBuf) -> Result<()> {
                 config.last_record_timestamp = timestamp;
                 config.write().await?;
             }
+            Err(err) if err.kind() == std::io::ErrorKind::WouldBlock => {
+                // ignore, this is a non-fatal error
+            }
             Err(err) => {
                 eprintln!("Error reading reports: {err:?}");
             }
