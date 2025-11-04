@@ -15,6 +15,8 @@ The line can contain any additional properties as desired.
 It is expected that whatever process is writing the logs will also rotate them.
 The log-sender will never delete any log files.
 
+Build `log-sender` locally with `make all`!
+
 ## running a local log-collector to aid in developing log-sender
 
 ```
