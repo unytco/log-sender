@@ -10,6 +10,8 @@ async fn config_init() {
         "bla".into(),
         42,
         60,
+        vec![dir.path().into()],
+        vec![dir.path().join("conductor-config.yaml")],
     )
     .await
     .unwrap();
