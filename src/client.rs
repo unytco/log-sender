@@ -213,14 +213,12 @@ impl Client {
         let res: serde_json::Value =
             res.json().await.map_err(std::io::Error::other)?;
 
-        if let Some(obj) = res.as_object() {
-            if let Some(p) = obj.get("success") {
-                if let Some(b) = p.as_bool() {
-                    if b {
-                        return Ok(res);
-                    }
-                }
-            }
+        if let Some(obj) = res.as_object()
+            && let Some(p) = obj.get("success")
+            && let Some(b) = p.as_bool()
+            && b
+        {
+            return Ok(res);
         }
 
         Err(std::io::Error::other(format!("invalid response: {res:?}")))
