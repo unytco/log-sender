@@ -49,6 +49,31 @@ enum Cmd {
         conductor_config_path: Vec<std::path::PathBuf>,
     },
 
+    /// Register DNA hashes with agreements and optional price sheets for a
+    /// drone.
+    RegisterDna {
+        /// Specify a full path to a config file,
+        /// e.g. `/var/run/log-sender-runtime.json`.
+        #[arg(long, env = "LOG_SENDER_CONFIG_FILE")]
+        config_file: std::path::PathBuf,
+
+        /// The dna hash to register.
+        #[arg(long, env = "LOG_SENDER_DNA_HASH")]
+        dna_hash: String,
+
+        /// The agreement id to register.
+        #[arg(long, env = "LOG_SENDER_AGREEMENT_ID")]
+        agreement_id: String,
+
+        /// Optionally attach a price-sheet hash.
+        #[arg(long, env = "LOG_SENDER_PRICE_SHEET_HASH")]
+        price_sheet_hash: Option<String>,
+
+        /// Optionally include additional json metadata.
+        #[arg(long, env = "LOG_SENDER_METADATA")]
+        metadata: Option<String>,
+    },
+
     /// Run the service, polling a log-file directory for metrics to
     /// publish to the log-collector.
     Service {
@@ -98,6 +123,24 @@ async fn main() {
         )
         .await
         .unwrap(),
+        Cmd::RegisterDna {
+            config_file,
+            dna_hash,
+            agreement_id,
+            price_sheet_hash,
+            metadata,
+        } => {
+            let out = log_sender::register_dna(
+                config_file,
+                dna_hash,
+                agreement_id,
+                price_sheet_hash,
+                metadata.map(|s| serde_json::from_str(&s).unwrap()),
+            )
+            .await
+            .unwrap();
+            println!("{}", serde_json::to_string_pretty(&out).unwrap());
+        }
         Cmd::Service { config_file } => {
             log_sender::run_service(config_file).await.unwrap()
         }

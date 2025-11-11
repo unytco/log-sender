@@ -52,6 +52,34 @@ pub async fn initialize(
     Ok(())
 }
 
+/// Register DNA hashes with agreements and optional price sheets for a drone.
+pub async fn register_dna(
+    config_file: std::path::PathBuf,
+    dna_hash: String,
+    agreement_id: String,
+    price_sheet_hash: Option<String>,
+    metadata: Option<serde_json::Value>,
+) -> Result<serde_json::Value> {
+    let config = RuntimeConfigFile::with_load(config_file).await?;
+
+    let url =
+        reqwest::Url::parse(&config.endpoint).map_err(std::io::Error::other)?;
+
+    let client = Client::new(url).await?;
+
+    client.health().await?;
+
+    client
+        .register_dna(
+            &config,
+            dna_hash,
+            agreement_id,
+            price_sheet_hash,
+            metadata,
+        )
+        .await
+}
+
 /// Run the service checking for report logs and reporting them.
 pub async fn run_service(config_file: std::path::PathBuf) -> Result<()> {
     let mut config = RuntimeConfigFile::with_load(config_file).await?;
