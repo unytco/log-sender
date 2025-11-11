@@ -134,6 +134,96 @@ impl Client {
         Err(std::io::Error::other(format!("invalid response: {res:?}")))
     }
 
+    /// Make a "register-dna" call.
+    pub async fn register_dna(
+        &self,
+        config: &RuntimeConfigFile,
+        dna_hash: String,
+        agreement_id: String,
+        price_sheet_hash: Option<String>,
+        metadata: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value> {
+        let mut url = self.url.clone();
+        url.set_path("/register-dna");
+
+        #[derive(serde::Serialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Req {
+            drone_pub_key: String,
+            dna_hash: String,
+            agreement_id: String,
+            price_sheet_hash: Option<String>,
+            drone_signature: String,
+            signature_timestamp: u64,
+            metadata: Option<serde_json::Value>,
+        }
+
+        let drone_pub_key = config.drone_pub_key.clone();
+        let signature_timestamp = std::time::SystemTime::UNIX_EPOCH
+            .elapsed()
+            .expect("can get time")
+            .as_millis() as u64;
+
+        #[derive(serde::Serialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Sig {
+            drone_pub_key: String,
+            dna_hash: String,
+            agreement_id: String,
+            timestamp: u64,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            price_sheet_hash: Option<String>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            metadata: Option<serde_json::Value>,
+        }
+
+        let sig = serde_json::to_string(&Sig {
+            drone_pub_key: drone_pub_key.clone(),
+            dna_hash: dna_hash.clone(),
+            agreement_id: agreement_id.clone(),
+            timestamp: signature_timestamp,
+            price_sheet_hash: price_sheet_hash.clone(),
+            metadata: metadata.clone(),
+        })?;
+
+        let drone_signature = config.rt_drone_sec_key.sign(sig.as_bytes())?;
+
+        let res = self
+            .client
+            .post(url)
+            .json(&Req {
+                drone_pub_key,
+                dna_hash,
+                agreement_id,
+                price_sheet_hash,
+                drone_signature,
+                signature_timestamp,
+                metadata,
+            })
+            .send()
+            .await
+            .map_err(std::io::Error::other)?;
+
+        if res.error_for_status_ref().is_err() {
+            return Err(std::io::Error::other(
+                res.text().await.map_err(std::io::Error::other)?,
+            ));
+        }
+
+        let res: serde_json::Value =
+            res.json().await.map_err(std::io::Error::other)?;
+
+        if let Some(obj) = res.as_object()
+            && let Some(p) = obj.get("success")
+            && let Some(b) = p.as_bool()
+            && b
+        {
+            return Ok(res);
+        }
+
+        Err(std::io::Error::other(format!("invalid response: {res:?}")))
+    }
+
     /// Submit metrics to the endpoint.
     pub async fn metrics(
         &self,
