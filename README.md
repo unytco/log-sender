@@ -17,6 +17,16 @@ The log-sender will never delete any log files.
 
 Build `log-sender` locally with `make all`!
 
+## Documentation
+
+- [Service Accounting with log-sender](./SERVICE_ACCOUNTING.md) - how the
+  sender / collector / harvester / Smart Agreement pipeline fits together, the
+  configuration an Edge Node hoster needs, and how to meter your own proof of
+  service.
+- [Log-Sender User Guide](./LOG_SENDER_USER_GUIDE.md) - flags, deployment,
+  troubleshooting.
+- [End-to-end process flow and testing](./E2E.md)
+
 ## running a local log-collector to aid in developing log-sender
 
 ```
