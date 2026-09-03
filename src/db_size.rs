@@ -33,8 +33,10 @@ pub async fn check_db_size(config: &RuntimeConfig) -> Result<Vec<String>> {
         let conductor: C =
             serde_yaml::from_str(&conductor).map_err(std::io::Error::other)?;
 
-        // only check dht database for now... it's gossipy : )
-        let db_dir = conductor.data_root_path.join("databases").join("dht");
+        // Holochain 0.7 stores every database flat under `databases/` as
+        // conductor.db, wasm.db, dht-<dna>.db, p2p-peer-meta-<dna>.db.
+        // Only the dht databases are metered... they're gossipy : )
+        let db_dir = conductor.data_root_path.join("databases");
 
         tracing::trace!(?db_dir);
 
@@ -54,11 +56,14 @@ async fn get_sizes(dir: &std::path::Path) -> Result<Vec<String>> {
             continue;
         }
 
+        let name = entry.file_name().to_string_lossy().to_string();
+        if !name.starts_with("dht-") {
+            continue;
+        }
+
         let meta = entry.metadata().await?;
 
-        let name = entry
-            .file_name()
-            .to_string_lossy()
+        let name = name
             .trim_end_matches("-shm")
             .trim_end_matches("-wal")
             .to_string();
@@ -86,4 +91,23 @@ async fn get_sizes(dir: &std::path::Path) -> Result<Vec<String>> {
     }
 
     Ok(out)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn finds_flat_dht_databases_of_holochain_0_7() {
+        let dir = tempfile::tempdir().unwrap();
+        let databases = dir.path().join("databases");
+        std::fs::create_dir_all(&databases).unwrap();
+        std::fs::write(databases.join("dht-uhC0kAAAA.db"), vec![0u8; 1024]).unwrap();
+        std::fs::write(databases.join("conductor.db"), vec![0u8; 512]).unwrap();
+        std::fs::write(databases.join("wasm.db"), vec![0u8; 256]).unwrap();
+
+        let sizes = get_sizes(&databases).await.unwrap();
+        assert_eq!(sizes.len(), 1, "only dht-* databases are metered: {sizes:?}");
+        assert!(sizes[0].contains("dht-uhC0kAAAA"), "{sizes:?}");
+    }
 }
