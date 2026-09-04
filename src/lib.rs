@@ -93,12 +93,20 @@ pub async fn run_service(config_file: std::path::PathBuf) -> Result<()> {
 
     loop {
         tracing::debug!("Checking DB sizes..");
-        let db_sizes = check_db_size(&config).await?;
-        tracing::debug!(?db_sizes);
+        // Non-fatal: a missing or unreadable databases directory (e.g. the
+        // conductor has not started yet) must not take down report shipping.
+        match check_db_size(&config).await {
+            Ok(db_sizes) => {
+                tracing::debug!(?db_sizes);
 
-        tracing::info!("Reporting {} db size proofs..", db_sizes.len());
-        if let Err(err) = client.metrics(&config, db_sizes).await {
-            eprintln!("Error reporting db sizes: {err:?}");
+                tracing::info!("Reporting {} db size proofs..", db_sizes.len());
+                if let Err(err) = client.metrics(&config, db_sizes).await {
+                    eprintln!("Error reporting db sizes: {err:?}");
+                }
+            }
+            Err(err) => {
+                eprintln!("Error checking db sizes: {err:?}");
+            }
         }
 
         tracing::debug!("Running reports..");
