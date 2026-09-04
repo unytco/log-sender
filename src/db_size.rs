@@ -102,12 +102,17 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let databases = dir.path().join("databases");
         std::fs::create_dir_all(&databases).unwrap();
-        std::fs::write(databases.join("dht-uhC0kAAAA.db"), vec![0u8; 1024]).unwrap();
+        std::fs::write(databases.join("dht-uhC0kAAAA.db"), vec![0u8; 1024])
+            .unwrap();
         std::fs::write(databases.join("conductor.db"), vec![0u8; 512]).unwrap();
         std::fs::write(databases.join("wasm.db"), vec![0u8; 256]).unwrap();
 
         let sizes = get_sizes(&databases).await.unwrap();
-        assert_eq!(sizes.len(), 1, "only dht-* databases are metered: {sizes:?}");
+        assert_eq!(
+            sizes.len(),
+            1,
+            "only dht-* databases are metered: {sizes:?}"
+        );
         assert!(sizes[0].contains("dht-uhC0kAAAA"), "{sizes:?}");
     }
 }
